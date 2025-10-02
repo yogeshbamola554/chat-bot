@@ -83,7 +83,6 @@ class ChatWithHistoryState(State):
         history = get_chat_history(user)
         bot_reply = "📜 Previous chat loaded. Now you can continue chatting."
         save_chat(user, "user", message)
-        save_chat(user, "bot", bot_reply)
         request.session["show_history"] = True
         return bot_reply, "chat"
     
@@ -98,10 +97,18 @@ class OtpFailedState(State):
             phone = request.session.get("phone")
             user = User.objects.get(phone=phone)
             otp = generate_otp(user)
-            return f"📱 A new OTP has been sent to {phone}. (Dev OTP: {otp.code})", request.session.get("last_otp_state", "otp_existing")
+            return (
+                f"📱 A new OTP has been sent to {phone}. (Dev OTP: {otp.code})",
+                request.session.get("last_otp_state", "otp_existing"),
+            )
+
+        # ✅ If user chooses to retry entering OTP
+        elif message.lower() == "retry":
+            return "🔁 Please enter the OTP again:", request.session.get("last_otp_state", "otp")
 
         # If user types something else
         return "⚠️ Please choose one of the options below.", "otp_failed"
+
 
 
 # -------------------------
