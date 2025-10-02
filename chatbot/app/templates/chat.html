@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fitness Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-gray-100 via-blue-50 to-purple-100 flex items-center justify-center min-h-screen font-sans">
+
+  <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col h-[90vh] overflow-hidden">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
+      <h1 class="font-bold text-xl">🏋️ Fitness Chatbot</h1>
+      <!-- Logout Button -->
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="message" value="Logout">
+        <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition">
+          Logout
+        </button>
+      </form>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="flex-1 p-6 overflow-y-auto bg-gray-50" id="chat-box">
+      {% if history %}
+        {% for chat in history %}
+          <div class="mb-3 {% if chat.sender == 'user' %}text-right{% endif %}">
+            <span class="inline-block px-4 py-2 rounded-2xl max-w-lg break-words shadow-md
+                         {% if chat.sender == 'user' %}
+                           bg-blue-500 text-white
+                         {% else %}
+                           bg-gray-200 text-gray-900
+                         {% endif %}">
+              {{ chat.message }}
+            </span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-gray-500 text-center italic">👉 Start by entering your number 📱</p>
+      {% endif %}
+
+      <!-- If bot gave a reply this turn, still show it -->
+      {% if bot_reply and not history %}
+        <div class="text-left mb-3">
+          <span class="inline-block bg-gray-200 text-gray-900 px-4 py-2 rounded-2xl max-w-lg break-words shadow-md">
+            {{ bot_reply }}
+          </span>
+        </div>
+      {% endif %}
+
+      <!-- Dynamic Options -->
+      {% if bot_reply and "Would you like to register?" in bot_reply %}
+        <div class="flex space-x-3 mt-3">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="message" value="Yes">
+            <button type="submit" class="px-5 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition">Yes</button>
+          </form>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="message" value="No">
+            <button type="submit" class="px-5 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition">No</button>
+          </form>
+        </div>
+      {% endif %}
+
+      {% if bot_reply and "Wrong OTP" in bot_reply %}
+        <div class="flex space-x-3 mt-3">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="message" value="Edit Number">
+            <button type="submit" class="px-5 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition">Edit Number</button>
+          </form>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="message" value="Resend OTP">
+            <button type="submit" class="px-5 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition">Resend OTP</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Input Box -->
+    <form method="post" class="flex border-t p-4 bg-white">
+      {% csrf_token %}
+      <input type="text" name="message" placeholder="Type your message..."
+             class="flex-1 px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition">
+      <button type="submit" class="ml-3 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
+        Send
+      </button>
+    </form>
+  </div>
+
+  <!-- Auto-scroll chat box -->
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    chatBox.scrollTop = chatBox.scrollHeight;
+  </script>
+</body>
+</html>
