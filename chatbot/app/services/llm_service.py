@@ -3,6 +3,7 @@ import json as pyjson
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
+from .chat_service import get_recent_chat_context
 
 # Load environment variables
 load_dotenv()
@@ -29,30 +30,72 @@ structured_prompt = ChatPromptTemplate.from_messages([
 ])
 
 
-def process_user_message(user_message: str) -> str:
+def process_user_message(user_message: str, user=None) -> str:
     """
-    Send user message to Gemini and return only the 'reply' field
-    (first-person bot answer). Falls back to raw response if parsing fails.
+    Send message + short-term memory + long-term summary to Gemini.
     """
-    messages = structured_prompt.format_messages(user_input=user_message)
+    memory_context = ""
+    long_term_summary = ""
+
+    if user:
+        memory_context = get_recent_chat_context(user, limit=5)
+        try:
+            long_term_summary = user.summary.summary_text or ""
+        except Exception:
+            long_term_summary = ""
+
+    combined_prompt = f"{long_term_summary}\n\n{memory_context}"
+
+    print(combined_prompt)
+
+    messages = structured_prompt.format_messages(user_input=combined_prompt)
     response = llm(messages)
     llm_raw = response.content.strip()
 
-    # ✅ Clean markdown fences if present
     if llm_raw.startswith("```"):
         llm_raw = llm_raw.strip("`").replace("json", "").strip()
 
-    # ✅ Parse JSON safely
     try:
         parsed = pyjson.loads(llm_raw)
         if isinstance(parsed, dict):
-            return parsed.get("reply", llm_raw)  # default to reply
+            return parsed.get("reply", llm_raw)
     except Exception:
         pass
 
-    # If not JSON → return raw
     return llm_raw
 
+
+# def process_user_message(user_message: str, user=None) -> str:
+#     """
+#     Send user message + recent chat context to Gemini
+#     and return only the 'reply' field.
+#     """
+#     # 🧠 Step 1: Build memory context
+#     memory_context = ""
+#     if user:
+#         memory_context = get_recent_chat_context(user, limit=5)
+
+#     # 🧠 Step 2: Combine context + new input
+#     combined_prompt = f"{memory_context}\nUser: {user_message}\nBot:"
+ 
+#     # 🧠 Step 3: Send to LLM
+#     messages = structured_prompt.format_messages(user_input=combined_prompt)
+#     response = llm(messages)
+#     llm_raw = response.content.strip()
+
+#     # ✅ Clean markdown fences
+#     if llm_raw.startswith("```"):
+#         llm_raw = llm_raw.strip("`").replace("json", "").strip()
+
+#     # ✅ Try parsing JSON
+#     try:
+#         parsed = pyjson.loads(llm_raw)
+#         if isinstance(parsed, dict):
+#             return parsed.get("reply", llm_raw)
+#     except Exception:
+#         pass
+
+#     return llm_raw
 
 def should_send_to_llm(message: str) -> bool:
     """
@@ -76,3 +119,29 @@ def should_send_to_llm(message: str) -> bool:
         return False
 
     return True
+
+def summarize_text(chat_text, existing_summary=None, word_limit=200):
+    """
+    Use Gemini to update conversation summary in <= `word_limit` words.
+    """
+    if not chat_text.strip():
+        return existing_summary or ""
+
+    system_prompt = (
+        f"You are an assistant that summarizes a user's conversation history in under {word_limit} words. "
+        "Keep it concise but preserve key context, goals, and preferences. "
+        "If an existing summary is provided, update and refine it instead of repeating details."
+    )
+
+    prompt = f"{system_prompt}\n\n"
+    if existing_summary:
+        prompt += f"Current summary:\n{existing_summary}\n\n"
+    prompt += f"New chat segment:\n{chat_text}\n\nReturn the updated summary only."
+
+    try:
+        
+        response = llm.invoke(prompt)
+        return response.content.strip()
+    except Exception as e:
+        print(f"[Summary Error] {e}")
+        return existing_summary or ""

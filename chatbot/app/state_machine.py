@@ -70,7 +70,7 @@ class ChatState(State):
     def handle(self, request, message):
         phone = request.session.get("phone")
         user = User.objects.get(phone=phone, is_verified=True)
-        bot_reply = f"🤖 FitnessBot: You said '{message}'"
+        bot_reply = message
         save_chat(user, "user", message)
         save_chat(user, "bot", bot_reply)
         return bot_reply, "chat"

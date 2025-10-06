@@ -1,41 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Fitness Chatbot</title>
+  <meta charset="UTF-8" />
+  <title>🏋️ Fitness Chatbot</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#2563EB",
+            secondary: "#9333EA",
+          },
+        },
+      },
+    };
+  </script>
 </head>
-<body class="bg-gradient-to-r from-gray-100 via-blue-50 to-purple-100 flex items-center justify-center min-h-screen font-sans">
 
-  <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl flex flex-col h-[90vh] overflow-hidden">
+<body class="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 flex items-center justify-center min-h-screen font-sans">
+
+  <div class="w-full max-w-4xl h-[90vh] bg-white/70 backdrop-blur-lg rounded-3xl shadow-2xl flex flex-col border border-white/30 overflow-hidden">
 
     <!-- Header -->
-    <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
-      <h1 class="font-bold text-xl">🏋️ Fitness Chatbot</h1>
-      <!-- Logout -->
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="message" value="Logout">
-        <button type="submit"
-                class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition">
-          Logout
-        </button>
-      </form>
+    <div class="flex justify-between items-center bg-gradient-to-r from-primary to-secondary text-white px-6 py-4 shadow-md">
+      <h1 class="font-bold text-2xl tracking-wide flex items-center gap-2">
+        🏋️ Fitness Chatbot
+      </h1>
+
+      <!-- ✅ Logout Button (sends message to backend) -->
+      <button onclick="sendMessage('Logout')"
+              class="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-transform transform hover:scale-105">
+        🚪 Logout
+      </button>
     </div>
 
     <!-- Chat Window -->
-    <div class="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100" id="chat-box">
-      <p class="text-gray-500 text-center italic">⏳ Loading chat history...</p>
+    <div id="chat-box" class="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 relative">
+      <p class="text-gray-500 text-center italic animate-pulse">⏳ Loading chat history...</p>
     </div>
 
     <!-- Input Box -->
-    <div class="flex border-t p-4 bg-white">
-      <input type="text" id="msg" placeholder="Type your message..."
-             class="flex-1 px-4 py-3 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+    <div class="flex items-center gap-3 border-t border-gray-200 p-4 bg-white/70 backdrop-blur-lg">
+      <input id="msg" type="text" placeholder="Type your message..."
+             class="flex-1 px-4 py-3 border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
              onkeypress="if(event.key === 'Enter'){sendMessage();}">
       <button onclick="sendMessage()"
-              class="ml-3 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition">
-        Send
+              class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white font-medium rounded-full hover:opacity-90 transition-all duration-200 shadow-md hover:scale-105">
+        Send 💬
       </button>
     </div>
   </div>
@@ -44,127 +56,125 @@
   <script>
     const chatBox = document.getElementById("chat-box");
 
-    // Send message via AJAX
-    async function sendMessage(customMessage=null) {
+    // Send message
+    async function sendMessage(customMessage = null) {
       const input = document.getElementById("msg");
       const message = customMessage || input.value.trim();
       if (!message) return;
 
-      // Show user message instantly
+      // Show user bubble
       chatBox.innerHTML += `
         <div class="mb-3 text-right">
-          <span class="inline-block px-4 py-2 rounded-2xl max-w-lg break-words shadow bg-blue-500 text-white rounded-br-none">
+          <span class="inline-block px-4 py-2 rounded-2xl max-w-lg break-words shadow bg-gradient-to-r from-primary to-secondary text-white rounded-br-none animate-fade-in">
             ${message}
           </span>
-        </div>
-      `;
+        </div>`;
       input.value = "";
       chatBox.scrollTop = chatBox.scrollHeight;
 
-      // Show thinking bubble
+      // Show "thinking" bubble
       const loadingId = Date.now();
       chatBox.innerHTML += `
         <div id="loading-${loadingId}" class="mb-3 text-left animate-pulse">
           <span class="inline-block bg-gray-300 text-gray-700 px-4 py-2 rounded-2xl rounded-bl-none shadow">
             🤖 Thinking...
           </span>
-        </div>
-      `;
+        </div>`;
       chatBox.scrollTop = chatBox.scrollHeight;
 
-      // Send to backend
-      const res = await fetch("/app/chat_api/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCookie("csrftoken")
-        },
-        body: JSON.stringify({ message: message })
-      });
-      const data = await res.json();
+      try {
+        const res = await fetch("/app/chat_api/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken")
+          },
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
 
-      // Replace thinking bubble with reply
-      const botMessageId = `bot-${loadingId}`;
-      document.getElementById(`loading-${loadingId}`).outerHTML = `
-        <div id="${botMessageId}" class="mb-3 text-left">
-          <span class="inline-block bg-gray-200 text-gray-900 px-4 py-2 rounded-2xl max-w-lg break-words shadow rounded-bl-none">
-            🤖 ${data.reply}
-          </span>
-        </div>
-      `;
-      chatBox.scrollTop = chatBox.scrollHeight;
-
-      // ✅ If backend says refresh history, load it
-      if (data.refresh_history) {
-        loadHistory();
-      }
-
-      // Normalize reply text
-      const cleanReply = (data.reply || "").toLowerCase();
-
-      // ✅ Registration prompt (Yes/No)
-      if (cleanReply.includes("would you like to register")) {
-        chatBox.innerHTML += `
-          <div class="flex space-x-3 mt-3">
-            <button onclick="sendMessage('Yes')" 
-                    class="px-5 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition">
-              Yes
-            </button>
-            <button onclick="sendMessage('No')" 
-                    class="px-5 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition">
-              No
-            </button>
-          </div>
-        `;
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
-
-      // ✅ Wrong OTP prompt (Edit / Resend / Retry)
-      if (cleanReply.includes("wrong otp")) {
-        chatBox.innerHTML += `
-          <div class="flex space-x-3 mt-3">
-            <button onclick="sendMessage('Edit Number')" 
-                    class="px-5 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition">
-              Edit Number
-            </button>
-            <button onclick="sendMessage('Resend OTP')" 
-                    class="px-5 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition">
-              Resend OTP
-            </button>
-            <button onclick="sendMessage('Retry')" 
-                    class="px-5 py-2 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 transition">
-              Retry
-            </button>
-          </div>
-        `;
+        // Replace thinking bubble
+        document.getElementById(`loading-${loadingId}`).outerHTML = `
+          <div class="mb-3 text-left">
+            <span class="inline-block bg-gray-100 text-gray-900 px-4 py-2 rounded-2xl max-w-lg break-words shadow rounded-bl-none border border-gray-200 animate-fade-in">
+              🤖 ${data.reply}
+            </span>
+          </div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
 
-        // ✅ Auto-focus input box for retry
-        setTimeout(() => document.getElementById("msg").focus(), 200);
+        // ✅ Handle Logout Reset
+        if (message.toLowerCase() === "logout" || (data.reply && data.reply.toLowerCase().includes("logged out"))) {
+          console.log("🧹 Clearing chat after logout...");
+          clearChat();
+          return;
+        }
+
+        // ✅ Normal flow continues
+        if (data.refresh_history) loadHistory();
+
+        const cleanReply = (data.reply || "").toLowerCase();
+
+        // Registration prompt
+        if (cleanReply.includes("would you like to register")) {
+          chatBox.innerHTML += `
+            <div class="flex space-x-3 mt-3">
+              <button onclick="sendMessage('Yes')"
+                      class="px-5 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 shadow transition-transform transform hover:scale-105">Yes</button>
+              <button onclick="sendMessage('No')"
+                      class="px-5 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow transition-transform transform hover:scale-105">No</button>
+            </div>`;
+        }
+
+        // Wrong OTP prompt
+        if (cleanReply.includes("wrong otp")) {
+          chatBox.innerHTML += `
+            <div class="flex space-x-3 mt-3">
+              <button onclick="sendMessage('Edit Number')"
+                      class="px-5 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow transition-transform transform hover:scale-105">Edit Number</button>
+              <button onclick="sendMessage('Resend OTP')"
+                      class="px-5 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 shadow transition-transform transform hover:scale-105">Resend OTP</button>
+              <button onclick="sendMessage('Retry')"
+                      class="px-5 py-2 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 shadow transition-transform transform hover:scale-105">Retry</button>
+            </div>`;
+          setTimeout(() => document.getElementById("msg").focus(), 200);
+        }
+
+      } catch (error) {
+        console.error("Chat error:", error);
+        alert("⚠️ Unable to reach the chatbot server.");
       }
     }
 
-    // Load history dynamically
+    // ✅ Clear chat after logout
+    function clearChat() {
+      chatBox.innerHTML = `<p class="text-gray-500 text-center italic">👉 Start by entering your number 📱</p>`;
+      document.getElementById("msg").value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Load chat history
     async function loadHistory() {
       const res = await fetch("/app/chat_history_api/");
       const data = await res.json();
-      chatBox.innerHTML = ""; // clear placeholder
+      chatBox.innerHTML = "";
 
-      if (data.history && data.history.length > 0) {
+      if (data.history?.length > 0) {
         data.history.forEach(chat => {
+          const align = chat.sender === "user" ? "text-right" : "text-left";
+          const bubbleStyle =
+            chat.sender === "user"
+              ? "bg-gradient-to-r from-primary to-secondary text-white rounded-br-none"
+              : "bg-gray-100 text-gray-900 border border-gray-200 rounded-bl-none";
+
           chatBox.innerHTML += `
-            <div class="mb-3 ${chat.sender === 'user' ? 'text-right' : ''}">
-              <span class="inline-block px-4 py-2 rounded-2xl max-w-lg break-words shadow
-                           ${chat.sender === 'user'
-                             ? 'bg-blue-500 text-white rounded-br-none'
-                             : 'bg-gray-200 text-gray-900 rounded-bl-none'}">
+            <div class="mb-3 ${align}">
+              <span class="inline-block px-4 py-2 rounded-2xl max-w-lg break-words shadow ${bubbleStyle} animate-fade-in">
                 ${chat.message}
               </span>
-            </div>
-          `;
+            </div>`;
         });
       } else {
-        chatBox.innerHTML = `<p class="text-gray-500 text-center italic">👉 Start by entering your number 📱</p>`;
+        clearChat();
       }
       chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -174,9 +184,9 @@
       let cookieValue = null;
       if (document.cookie && document.cookie !== "") {
         const cookies = document.cookie.split(";");
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + "=")) {
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + "=")) {
             cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
             break;
           }
@@ -185,8 +195,19 @@
       return cookieValue;
     }
 
-    // Load history on page load
+    // Load chat history on page load
     loadHistory();
   </script>
+
+  <!-- Animations -->
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+  </style>
 </body>
 </html>

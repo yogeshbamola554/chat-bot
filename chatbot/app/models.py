@@ -80,3 +80,14 @@ class ChatHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.phone} | {self.sender}: {self.message[:30]}"
+
+# -------------------------------
+# Chat Summary Model
+# -------------------------------
+class ConversationSummary(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="summary")
+    summary_text = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Summary for {self.user.phone}"
